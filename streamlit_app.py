@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 
 # ---------------------------------------------------------
 # PAGE CONFIGURATION & STYLING
@@ -227,7 +225,17 @@ df_original["exited_Label"] = df_original["exited"].map({1: "Exited (Churn)", 0:
 # SIDEBAR FILTERS & CONTROL PANEL
 # ---------------------------------------------------------
 st.sidebar.image("https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?auto=format&fit=crop&w=800&q=80", use_container_width=True)
-st.sidebar.markdown("<h2 style='font-weight:800; font-size:1.4rem; margin-bottom:1rem; color:#0F172A;'>Control Panel & Segments</h2>", unsafe_allow_html=True)
+
+# Lead Financial Analyst Highlight
+st.sidebar.markdown("""
+<div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; margin-bottom: 1.5rem;">
+    <p style="margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748B; font-weight: 700;">Project Author</p>
+    <p style="margin: 0.2rem 0 0 0; font-size: 0.95rem; font-weight: 700; color: #0F172A;">Akshat Dahlan</p>
+    <p style="margin: 0; font-size: 0.75rem; color: #475569; font-weight: 500;">Lead Financial Analyst</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.sidebar.markdown("<h2 style='font-weight:800; font-size:1.2rem; margin-bottom:1rem; color:#0F172A;'>Control Panel & Segments</h2>", unsafe_allow_html=True)
 
 # Geography multi-select
 geography_options = df_original["geography"].unique().tolist()
@@ -253,7 +261,7 @@ selected_members = st.sidebar.multiselect(
     default=member_options
 )
 
-# Age Slider
+# Age Slider (Safe standard hyphen ranges)
 min_age = int(df_original["age"].min())
 max_age = int(df_original["age"].max())
 selected_age_range = st.sidebar.slider(
@@ -295,6 +303,13 @@ st.markdown("""
 <div class="header-container">
     <div class="header-sub">European Central Bank • Technical Intelligence Unit</div>
     <div class="header-title">Customer Segmentation & Churn Pattern Analytics</div>
+    <div style="margin-top: 1rem; font-size: 0.85rem; color: #94A3B8; border-top: 1px solid #334155; padding-top: 0.75rem; display: flex; flex-wrap: wrap; gap: 1rem;">
+        <span>👤 Lead Financial Analyst: <strong>Akshat Dahlan</strong></span>
+        <span style="color: #475569;">|</span>
+        <span>📅 Release Year: 2026</span>
+        <span style="color: #475569;">|</span>
+        <span>🔒 Classification: Strictly Confidential</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -414,29 +429,16 @@ with tab1:
     
     with v_col1:
         st.markdown("<div class='section-header'>High-Value Premium Risk Analysis (Balances > $100k)</div>", unsafe_allow_html=True)
-        # Bar chart comparing churn rates in high value vs normal
-        df_original["Balance_Category"] = df_original["balance"].apply(lambda x: "Premium Account (>$100k)" if x > 100000 else "Standard Account")
-        
-        # Filtered equivalent
+        # Process Category Churn
         df_filtered_copy = df_filtered.copy()
-        df_filtered_copy["Balance_Category"] = df_filtered_copy["balance"].apply(lambda x: "Premium Account (>$100k)" if x > 100000 else "Standard Account")
+        df_filtered_copy["Account Value Segment"] = df_filtered_copy["balance"].apply(lambda x: "Premium (>$100k)" if x > 100000 else "Standard")
         
-        premium_summary = df_filtered_copy.groupby("Balance_Category")["exited"].agg(["count", "sum"]).reset_index()
+        premium_summary = df_filtered_copy.groupby("Account Value Segment")["exited"].agg(["count", "sum"]).reset_index()
         premium_summary["Churn_Rate"] = (premium_summary["sum"] / premium_summary["count"] * 100).round(2)
         
-        fig_prem = px.bar(
-            premium_summary,
-            x="Balance_Category",
-            y="Churn_Rate",
-            color="Balance_Category",
-            text="Churn_Rate",
-            labels={"Churn_Rate": "Observed Churn Rate (%)", "Balance_Category": "Portfolio Segment"},
-            color_discrete_map={"Premium Account (>$100k)": "#DC2626", "Standard Account": "#2563EB"},
-            height=350
-        )
-        fig_prem.update_traces(texttemplate='%{text}%', textposition='outside')
-        fig_prem.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
-        st.plotly_chart(fig_prem, use_container_width=True)
+        # Prepare native chart dataframe
+        chart_df_prem = premium_summary[["Account Value Segment", "Churn_Rate"]].set_index("Account Value Segment")
+        st.bar_chart(chart_df_prem)
         st.caption("Premium accounts demonstrate a distinct risk behavior pattern, representing critical high-net-worth liquidity exposure.")
         
     with v_col2:
@@ -445,19 +447,8 @@ with tab1:
         member_summary = df_filtered.groupby("isActiveMember_Label")["exited"].agg(["count", "sum"]).reset_index()
         member_summary["Churn_Rate"] = (member_summary["sum"] / member_summary["count"] * 100).round(2)
         
-        fig_member = px.bar(
-            member_summary,
-            x="isActiveMember_Label",
-            y="Churn_Rate",
-            color="isActiveMember_Label",
-            text="Churn_Rate",
-            labels={"Churn_Rate": "Observed Churn Rate (%)", "isActiveMember_Label": "Membership Status"},
-            color_discrete_map={"Active Member": "#10B981", "Inactive Member": "#F59E0B"},
-            height=350
-        )
-        fig_member.update_traces(texttemplate='%{text}%', textposition='outside')
-        fig_member.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
-        st.plotly_chart(fig_member, use_container_width=True)
+        chart_df_member = member_summary[["isActiveMember_Label", "Churn_Rate"]].set_index("isActiveMember_Label")
+        st.bar_chart(chart_df_member)
         st.caption("Inactivity constitutes the most powerful behavioral indicator of impending customer account termination.")
 
 # ---------------------------------------------------------
@@ -466,42 +457,36 @@ with tab1:
 with tab2:
     st.markdown("<div class='section-header'>Secondary Mandate A: Geographic Risk Vectors</div>", unsafe_allow_html=True)
     
-    g_col1, g_col2 = st.columns([1, 1])
+    g_col1, g_col2 = st.columns(2)
     
     with g_col1:
         # Country Churn Rates
         geo_summary = df_filtered.groupby("geography")["exited"].agg(["count", "sum"]).reset_index()
         geo_summary["Churn_Rate"] = (geo_summary["sum"] / geo_summary["count"] * 100).round(2)
         
-        fig_geo = px.bar(
-            geo_summary,
-            x="geography",
-            y="Churn_Rate",
-            color="geography",
-            text="Churn_Rate",
-            labels={"Churn_Rate": "Churn Rate (%)", "geography": "Country"},
-            color_discrete_sequence=px.colors.qualitative.Prism,
-            height=350
-        )
-        fig_geo.update_traces(texttemplate='%{text}%', textposition='outside')
-        fig_geo.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
-        st.plotly_chart(fig_geo, use_container_width=True)
+        chart_df_geo = geo_summary[["geography", "Churn_Rate"]].set_index("geography")
+        st.bar_chart(chart_df_geo)
         st.caption("Geographic division of portfolio risk. Germany typically showcases structurally high churn tendencies.")
         
     with g_col2:
-        # Pie chart of customer geographic distribution
-        fig_pie = px.pie(
-            geo_summary,
-            values="count",
-            names="geography",
-            hole=0.4,
-            color="geography",
-            color_discrete_sequence=px.colors.qualitative.Prism,
-            height=350
-        )
-        fig_pie.update_layout(margin=dict(t=10, b=10, l=10, r=10))
-        st.plotly_chart(fig_pie, use_container_width=True)
-        st.caption("Geographic footprint (customer count distribution) of currently selected customer accounts.")
+        st.markdown("<p style='font-size: 0.9rem; font-weight: 600; color: #475569; margin-bottom: 1rem;'>Geographic Portfolio Distribution</p>", unsafe_allow_html=True)
+        # Pie chart replacement: Beautiful handcrafted percentage progress metrics
+        st.markdown("<div style='background-color: white; border: 1px solid #E2E8F0; padding: 1.5rem; border-radius: 0.75rem;'>", unsafe_allow_html=True)
+        for index, row in geo_summary.iterrows():
+            percentage = (row["count"] / total_cust * 100) if total_cust > 0 else 0.0
+            st.markdown(f"""
+            <div style="margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem;">
+                    <span style="font-weight: 600; color: #0F172A;">{row['geography']}</span>
+                    <span style="font-weight: 500; color: #475569;">{row['count']} Accounts ({percentage:.1f}%)</span>
+                </div>
+                <div style="background-color: #F1F5F9; border-radius: 9999px; height: 10px; width: 100%;">
+                    <div style="background-color: #2563EB; height: 10px; border-radius: 9999px; width: {percentage}%;"></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.caption("Geographic footprint of currently filtered accounts in the banking system.")
 
     st.markdown("<div class='section-header'>Demographic Risk Vectors: Age Brackets & Tenure</div>", unsafe_allow_html=True)
     
@@ -520,58 +505,37 @@ with tab2:
                 return "Over 60"
                 
         df_filtered_copy = df_filtered.copy()
-        df_filtered_copy["Age_Bracket"] = df_filtered_copy["age"].apply(get_age_bracket)
+        df_filtered_copy["Age Bracket"] = df_filtered_copy["age"].apply(get_age_bracket)
         
-        age_summary = df_filtered_copy.groupby("Age_Bracket")["exited"].agg(["count", "sum"]).reset_index()
+        age_summary = df_filtered_copy.groupby("Age Bracket")["exited"].agg(["count", "sum"]).reset_index()
         age_order = ["Under 30", "30 - 45", "46 - 60", "Over 60"]
-        age_summary["Age_Bracket"] = pd.Categorical(age_summary["Age_Bracket"], categories=age_order, ordered=True)
-        age_summary = age_summary.sort_values("Age_Bracket")
+        age_summary["Age Bracket"] = pd.Categorical(age_summary["Age Bracket"], categories=age_order, ordered=True)
+        age_summary = age_summary.sort_values("Age Bracket")
         age_summary["Churn_Rate"] = (age_summary["sum"] / age_summary["count"] * 100).round(2)
         
-        fig_age = px.line(
-            age_summary,
-            x="Age_Bracket",
-            y="Churn_Rate",
-            markers=True,
-            text="Churn_Rate",
-            labels={"Churn_Rate": "Churn Rate (%)", "Age_Bracket": "Age Group"},
-            height=350
-        )
-        fig_age.update_traces(textposition="top center", line=dict(color="#2563EB", width=3))
-        fig_age.update_layout(margin=dict(t=20, b=20, l=10, r=10))
-        st.plotly_chart(fig_age, use_container_width=True)
+        chart_df_age = age_summary[["Age Bracket", "Churn_Rate"]].set_index("Age Bracket")
+        st.line_chart(chart_df_age)
         st.caption("Risk curves by age group show significant escalation within the 46 - 60 demographic.")
         
     with d_col2:
         # Tenure Groups
         def get_tenure_group(tenure):
             if tenure <= 3:
-                return "Short Term (0 - 3 yrs)"
+                return "Short Term (0-3 yrs)"
             elif tenure <= 7:
-                return "Medium Term (4 - 7 yrs)"
+                return "Medium Term (4-7 yrs)"
             else:
                 return "Long Term (8+ yrs)"
                 
-        df_filtered_copy["Tenure_Group"] = df_filtered_copy["tenure"].apply(get_tenure_group)
-        tenure_summary = df_filtered_copy.groupby("Tenure_Group")["exited"].agg(["count", "sum"]).reset_index()
-        tenure_order = ["Short Term (0 - 3 yrs)", "Medium Term (4 - 7 yrs)", "Long Term (8+ yrs)"]
-        tenure_summary["Tenure_Group"] = pd.Categorical(tenure_summary["Tenure_Group"], categories=tenure_order, ordered=True)
-        tenure_summary = tenure_summary.sort_values("Tenure_Group")
+        df_filtered_copy["Tenure Bracket"] = df_filtered_copy["tenure"].apply(get_tenure_group)
+        tenure_summary = df_filtered_copy.groupby("Tenure Bracket")["exited"].agg(["count", "sum"]).reset_index()
+        tenure_order = ["Short Term (0-3 yrs)", "Medium Term (4-7 yrs)", "Long Term (8+ yrs)"]
+        tenure_summary["Tenure Bracket"] = pd.Categorical(tenure_summary["Tenure Bracket"], categories=tenure_order, ordered=True)
+        tenure_summary = tenure_summary.sort_values("Tenure Bracket")
         tenure_summary["Churn_Rate"] = (tenure_summary["sum"] / tenure_summary["count"] * 100).round(2)
         
-        fig_tenure = px.bar(
-            tenure_summary,
-            x="Tenure_Group",
-            y="Churn_Rate",
-            color="Tenure_Group",
-            text="Churn_Rate",
-            labels={"Churn_Rate": "Churn Rate (%)", "Tenure_Group": "Tenure Classification"},
-            color_discrete_sequence=px.colors.sequential.Deep,
-            height=350
-        )
-        fig_tenure.update_traces(texttemplate='%{text}%', textposition='outside')
-        fig_tenure.update_layout(showlegend=False, margin=dict(t=10, b=10, l=10, r=10))
-        st.plotly_chart(fig_tenure, use_container_width=True)
+        chart_df_tenure = tenure_summary[["Tenure Bracket", "Churn_Rate"]].set_index("Tenure Bracket")
+        st.bar_chart(chart_df_tenure)
         st.caption("Customer retention levels grouped by institutional relationship tenure.")
 
 # ---------------------------------------------------------
@@ -657,7 +621,7 @@ with tab4:
                 <strong>Action Plan:</strong>
                 <ul style="font-size:0.85rem; padding-left:1.2rem; color:#475569;">
                     <li>Proactively flag inactive high-value customers (balances > $100k, inactive for 6 months) for direct relationship manager outreach.</li>
-                    <li>Implement specialized preferential yield options (e.g., promotional high-yield certificates) targeting accounts with balances > $100k.</li>
+                    <li>Implement specialized preferential yield options targeting accounts with balances > $100k.</li>
                     <li>Deploy high-priority VIP customer service channels to resolve account friction instantly.</li>
                 </ul>
             </p>
@@ -673,7 +637,7 @@ with tab4:
         <div class="kpi-card" style="border-left: 5px solid #D97706; height: 100%;">
             <h4 style="color:#D97706; font-weight:700; margin-top:0;">⚡ Strategy C: Re-Engagement of Inactive Members</h4>
             <p style="font-size:0.85rem; line-height:1.5; color:#334155;">
-                <strong>Evidence:</strong> Inactive members are substantially more vulnerable to churn, demonstrating a elevated risk multiplier.
+                <strong>Evidence:</strong> Inactive members are substantially more vulnerable to churn, demonstrating an elevated risk multiplier.
             </p>
             <p style="font-size:0.85rem; line-height:1.5; color:#334155;">
                 <strong>Action Plan:</strong>
@@ -703,3 +667,13 @@ with tab4:
             </p>
         </div>
         """, unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# FOOTER DISPLAY
+# ---------------------------------------------------------
+st.markdown("---")
+st.markdown("""
+<p style='text-align: center; color: #94A3B8; font-size: 0.8rem; font-family: monospace; letter-spacing: 0.05em;'>
+    TECHNICAL INTELLIGENCE DATA-SUITE • DESIGNED & AUTHORED BY AKSHAT DAHLAN, LEAD FINANCIAL ANALYST
+</p>
+""", unsafe_allow_html=True)
